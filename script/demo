@@ -1,0 +1,1 @@
+(cd js-sandbox-host && npm run dev) & (cd js-sandbox-inner && npm run dev)

@@ -3,15 +3,33 @@ import { useState, useRef, useEffect } from "react";
 const iframeOrigin = "http://localhost:5175";
 
 export function JsSandbox() {
-  const [inputValue, setInputValue] = useState(exampleInput);
+  const [mode, setMode] = useState<"function" | "component">("function");
   const [code, setCode] = useState(exampleFunction);
+  const [inputValue, setInputValue] = useState(exampleInput);
 
-  const { iframeRef, output, error } = useSandboxedExecution(code, inputValue);
+  const { iframeRef, output, error } = useSandboxedExecution(
+    mode,
+    code,
+    inputValue
+  );
 
   return (
     <div style={{ padding: 100, display: "flex", flexDirection: "column" }}>
       <h1>Sandboxed code execution demo</h1>
-      <h2>Input</h2>
+      <select
+        value={mode}
+        onChange={(e) => {
+          const mode: "function" | "component" =
+            e.target.value === "function" ? "function" : "component";
+          setCode(mode === "function" ? exampleFunction : exampleComponent);
+          setInputValue(mode === "function" ? exampleInput : exampleProps);
+          setMode(mode);
+        }}
+      >
+        <option value="function">Function invocation</option>
+        <option value="component">React component</option>
+      </select>
+      <h2>{mode === "function" ? "Input" : "Props"}</h2>
       <input
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
@@ -32,18 +50,26 @@ export function JsSandbox() {
               : JSON.stringify(error, null, 2)}
           </pre>
         </div>
-      ) : (
+      ) : mode === "function" ? (
         <>
           <h2>Output</h2>
           <pre>{JSON.stringify(output, null, 2)}</pre>
         </>
-      )}
-      <iframe src={iframeOrigin} ref={iframeRef} />
+      ) : null}
+      <iframe
+        src={iframeOrigin}
+        ref={iframeRef}
+        style={mode === "function" ? { display: "none" } : undefined}
+      />
     </div>
   );
 }
 
-function useSandboxedExecution(code: string, input: string) {
+function useSandboxedExecution(
+  mode: "function" | "component",
+  code: string,
+  input: string
+) {
   const [output, setOutput] = useState<unknown>(null);
   const [error, setError] = useState<unknown>(null);
 
@@ -55,12 +81,12 @@ function useSandboxedExecution(code: string, input: string) {
 
     iframeWindow.postMessage(
       {
-        type: "FUNCTION_BODY",
+        type: mode === "function" ? "FUNCTION_BODY" : "REACT_COMPONENT",
         functionBody: code,
       },
       iframeOrigin
     );
-  }, [code]);
+  }, [code, mode]);
 
   useEffect(() => {
     const iframeWindow = iframeRef.current?.contentWindow;
@@ -68,12 +94,12 @@ function useSandboxedExecution(code: string, input: string) {
 
     iframeWindow.postMessage(
       {
-        type: "FUNCTION_ARGUMENT",
+        type: mode === "function" ? "FUNCTION_ARGUMENT" : "REACT_PROPS",
         functionArgument: input,
       },
       iframeOrigin
     );
-  }, [input]);
+  }, [input, mode]);
 
   useEffect(() => {
     const onCodeResult = (e: MessageEvent) => {
@@ -114,3 +140,9 @@ const exampleFunction = `async function execute(input) {
 }`;
 
 const exampleInput = '{ "nwo": "facebook/react" }';
+
+const exampleComponent = `function MyComponent(props) {
+  return React.createElement("h2", {}, props.message);
+}`;
+
+const exampleProps = `{ "message": "Dynamic react component" }`;

@@ -57,6 +57,7 @@ export function JsSandbox() {
         </>
       ) : null}
       <iframe
+        sandbox="allow-scripts allow-same-origin"
         src={iframeOrigin}
         ref={iframeRef}
         style={mode === "function" ? { display: "none" } : undefined}
@@ -142,7 +143,13 @@ const exampleFunction = `async function execute(input) {
 const exampleInput = '{ "nwo": "facebook/react" }';
 
 const exampleComponent = `function MyComponent(props) {
-  return React.createElement("h2", {}, props.message);
+  const [count, setCount] = React.useState(0)
+
+  return React.createElement("div", {}, 
+    React.createElement("h2", {}, props.message),
+    React.createElement("p", {}, "Count: " + count),
+    React.createElement("button", { onClick: () => setCount(c => c + 1)}, "Increment")
+  );
 }`;
 
 const exampleProps = `{ "message": "Dynamic react component" }`;

@@ -73,10 +73,21 @@ function useSandboxedExecution(
 ) {
   const [output, setOutput] = useState<unknown>(null);
   const [error, setError] = useState<unknown>(null);
-
+  const [iframeReady, setIframeReady] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const onLoad = () => setIframeReady(true);
+
+    iframe.addEventListener("load", onLoad);
+    return () => iframe.removeEventListener("load", onLoad);
+  });
+
+  useEffect(() => {
+    if (!iframeReady) return;
     const iframeWindow = iframeRef.current?.contentWindow;
     if (!iframeWindow) return;
 
@@ -87,9 +98,10 @@ function useSandboxedExecution(
       },
       iframeOrigin
     );
-  }, [code, mode]);
+  }, [code, mode, iframeReady]);
 
   useEffect(() => {
+    if (!iframeReady) return;
     const iframeWindow = iframeRef.current?.contentWindow;
     if (!iframeWindow) return;
 
@@ -100,7 +112,7 @@ function useSandboxedExecution(
       },
       iframeOrigin
     );
-  }, [input, mode]);
+  }, [input, mode, iframeReady]);
 
   useEffect(() => {
     const onCodeResult = (e: MessageEvent) => {
